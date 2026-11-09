@@ -1,7 +1,11 @@
-# infra — 로컬 minikube Helm 구성 (Phase 1)
+# infra — 로컬 minikube Helm 구성
 
-모노레포 안에서 로컬 minikube용 K8s/Helm 구성을 담는 디렉토리. 이 디렉토리는 이후 폴리레포 분리 시
-그대로 별도 `infra` 레포의 루트로 이동한다. 서비스 코드 모듈(`services/*`)에는 Helm 차트를 두지 않는다.
+`barofit-infra` 레포(폴리레포 분리 후)의 Helm 차트 디렉토리. 서비스 코드는 각자 독립 레포
+(`barofit-identity` 등)에 있고, 이 레포엔 Helm 차트와 `integration-tests`, 검증 스크립트만 둔다.
+
+이미지는 각 서비스 레포(`barofit-identity` 등)에서 개별적으로 빌드/푸시한다(루트의
+`scripts/build-and-push.sh`는 모노레포 시절 단일 Dockerfile+`ARG SERVICE_NAME` 분기 빌드용이라
+분리 후에는 더 이상 쓰지 않음 — 각 서비스 레포 자신의 Dockerfile로 빌드).
 
 ```
 infra/

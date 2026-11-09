@@ -1,9 +1,37 @@
-plugins { id 'org.springframework.boot' }
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.barofit'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add('-parameters')
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+    }
+}
 
 dependencies {
-    implementation project(':services:identity')
-    implementation project(':services:routine')
-    implementation project(':shared:runtime')
+    implementation 'com.barofit:barofit-identity:0.0.1-SNAPSHOT'
+    implementation 'com.barofit:barofit-routine:0.0.1-SNAPSHOT'
+    implementation 'com.barofit:barofit-runtime:0.0.1-SNAPSHOT'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
@@ -14,8 +42,22 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
     testImplementation 'org.testcontainers:testcontainers-postgresql'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.1'
-    testImplementation(testFixtures(project(':services:identity')))
+    testImplementation 'com.barofit:barofit-identity:0.0.1-SNAPSHOT:test-fixtures'
+    // identity의 spring-security-oauth2-jose는 implementation scope라 POM에 전이되지 않음 ->
+    // TestTokens.java가 com.nimbusds.jose.jwk.*를 직접 import하므로 명시적으로 추가해야 컴파일됨
+    testImplementation 'org.springframework.security:spring-security-oauth2-jose'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('bootJar') { enabled = false }
 tasks.named('bootRun') { enabled = false }
+tasks.named('test') {
+    useJUnitPlatform()
+    // compose.yaml이 없는 독립 레포이므로 postgres 이미지 태그를 하드코딩(모노레포 compose.yaml 기준)
+    jvmArgumentProviders.add({ ["-Dbarofit.test.postgres-image=postgres:18.6"] } as CommandLineArgumentProvider)
+}
