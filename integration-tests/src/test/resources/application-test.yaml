@@ -1,4 +1,0 @@
-# DB는 Testcontainers가 주입(Docker 필요)
-barofit:
-  scheduling:
-    enabled: false

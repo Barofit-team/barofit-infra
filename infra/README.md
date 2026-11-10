@@ -129,4 +129,23 @@ curl $GW_URL/api/v1/exercises
 kubectl -n barofit logs deploy/routine-service | grep -i identity
 ```
 
-전부 정상이면 Phase 1 완료 → Phase 2(통합 검증)로 넘어간다.
+## 7. HTTP E2E 테스트 (integration-tests)
+
+`integration-tests` 모듈은 Spring 컨텍스트나 Testcontainers 없이, 위 6번처럼 게이트웨이를 실제
+HTTP로 호출해서 배포된 환경 전체를 검증한다 (각 서비스 자신의 단위·통합 테스트는 각 서비스 레포에
+있다 — `docs/TESTING.md` 참고). minikube service 터널을 띄워둔 채로 그 URL을 넘긴다.
+
+```bash
+# 터널은 떠 있는 동안 포그라운드를 차지하므로 별도 터미널에서:
+minikube service gateway -n barofit --url
+# 위에서 나온 URL(예: http://127.0.0.1:12345)을 아래에 넘긴다
+
+cd integration-tests
+./gradlew test -Dbarofit.e2e.gateway-url=http://127.0.0.1:12345
+```
+
+인증 토큰은 `./keys/jwt-private.pem`(위 2단계에서 Secret으로 올린 바로 그 키)으로 직접 서명한다 —
+따로 로그인할 필요 없다. 키 위치가 다르면 `-Dbarofit.e2e.keys-dir=<경로>`로 지정한다 (기본값
+`../keys`).
+
+전부 정상이면 Phase 1(모노레포 내 구축) + Phase 3(폴리레포 분리 후 재배포 검증)까지 완료다.
