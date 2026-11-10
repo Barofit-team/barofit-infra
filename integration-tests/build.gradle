@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.diffplug.spotless' version '8.11.0'
 }
 
 group = 'com.barofit'
@@ -60,4 +61,13 @@ tasks.named('test') {
     useJUnitPlatform()
     // compose.yaml이 없는 독립 레포이므로 postgres 이미지 태그를 하드코딩(모노레포 compose.yaml 기준)
     jvmArgumentProviders.add({ ["-Dbarofit.test.postgres-image=postgres:18.6"] } as CommandLineArgumentProvider)
+}
+
+spotless {
+    java {
+        googleJavaFormat()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }

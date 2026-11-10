@@ -14,16 +14,16 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class JwksEndpointTest {
 
-	@Autowired
-	MockMvc mockMvc;
+  @Autowired MockMvc mockMvc;
 
-	@Test
-	void 공개키만_노출한다() throws Exception {
-		mockMvc.perform(get("/.well-known/jwks.json"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.keys[0].kid").value("test-kid"))
-				.andExpect(jsonPath("$.keys[0].kty").value("RSA"))
-				.andExpect(jsonPath("$.keys[0].n").exists())
-				.andExpect(jsonPath("$.keys[0].d").doesNotExist());
-	}
+  @Test
+  void 공개키만_노출한다() throws Exception {
+    mockMvc
+        .perform(get("/.well-known/jwks.json"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.keys[0].kid").value("test-kid"))
+        .andExpect(jsonPath("$.keys[0].kty").value("RSA"))
+        .andExpect(jsonPath("$.keys[0].n").exists())
+        .andExpect(jsonPath("$.keys[0].d").doesNotExist());
+  }
 }
