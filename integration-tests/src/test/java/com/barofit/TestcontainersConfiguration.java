@@ -10,25 +10,26 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
 
-	private static final String IMAGE_PROPERTY = "barofit.test.postgres-image";
+  private static final String IMAGE_PROPERTY = "barofit.test.postgres-image";
 
-	private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse(postgresImage()));
+  private static final PostgreSQLContainer POSTGRES =
+      new PostgreSQLContainer(DockerImageName.parse(postgresImage()));
 
-	static {
-		POSTGRES.start();
-	}
+  static {
+    POSTGRES.start();
+  }
 
-	@Bean(destroyMethod = "")
-	@ServiceConnection
-	PostgreSQLContainer postgresContainer() {
-		return POSTGRES;
-	}
+  @Bean(destroyMethod = "")
+  @ServiceConnection
+  PostgreSQLContainer postgresContainer() {
+    return POSTGRES;
+  }
 
-	private static String postgresImage() {
-		String image = System.getProperty(IMAGE_PROPERTY);
-		if (image == null || image.isBlank()) {
-			throw new IllegalStateException(IMAGE_PROPERTY + " 시스템 프로퍼티가 없습니다. 테스트는 Gradle로 실행하세요");
-		}
-		return image;
-	}
+  private static String postgresImage() {
+    String image = System.getProperty(IMAGE_PROPERTY);
+    if (image == null || image.isBlank()) {
+      throw new IllegalStateException(IMAGE_PROPERTY + " 시스템 프로퍼티가 없습니다. 테스트는 Gradle로 실행하세요");
+    }
+    return image;
+  }
 }

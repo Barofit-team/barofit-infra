@@ -14,5 +14,4 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(classes = BaroApplication.class)
 @ActiveProfiles("test")
 @Import({TestcontainersConfiguration.class, TestJwtKeyConfiguration.class})
-public @interface IntegrationTest {
-}
+public @interface IntegrationTest {}
