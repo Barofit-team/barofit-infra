@@ -1,0 +1,64 @@
+name: BaroFit Helm CD Validation
+
+on:
+  push:
+    branches:
+      - feat/cd-ecr-helm-gitops
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/helm-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-helm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4.3.1
+        with:
+          version: v3.17.3
+
+      - name: Build Helm dependencies
+        run: helm dependency build infra/umbrella
+
+      - name: Lint Helm chart
+        run: |
+          helm lint infra/umbrella \
+            -f infra/values-ecr-dev.yaml
+
+      - name: Render Kubernetes manifests
+        run: |
+          helm template barofit infra/umbrella \
+            --namespace barofit \
+            -f infra/values-ecr-dev.yaml \
+            > /tmp/barofit-rendered.yaml
+
+      - name: Verify five ECR images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REGISTRY="373514675861.dkr.ecr.ap-northeast-2.amazonaws.com"
+          TAG="80c8f67"
+
+          for SERVICE in identity routine workout analytics report; do
+            IMAGE="${REGISTRY}/barofit-${SERVICE}:${TAG}"
+
+            if ! grep -Fq "${IMAGE}" /tmp/barofit-rendered.yaml; then
+              echo "FAIL: ${IMAGE}"
+              exit 1
+            fi
+
+            echo "PASS: ${IMAGE}"
+          done
+
+      - name: Validation completed
+        run: echo "BaroFit Helm validation passed"
