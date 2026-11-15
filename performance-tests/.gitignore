@@ -1,0 +1,7 @@
+# 액세스/리프레시 토큰, 시드 SQL 등 — 사실상 자격증명이라 커밋하지 않는다.
+.artifacts/
+
+# raw k6 summary — 라운드별 원본은 로컬/결과 보관용. 공유할 "공식" 라운드 기록은
+# /barofit/test/결과/ 에 사람이 읽을 markdown과 함께 별도로 남긴다.
+results/*.json
+!results/.gitkeep
