@@ -18,8 +18,8 @@
 node scripts/seed-baseline-data.mjs 120
 # -> .artifacts/seed.sql, .artifacts/refresh-tokens.json, .artifacts/users.json
 
-# 2) 위 SQL을 postgres에 적용
-kubectl exec -n barofit <postgres-pod> -- psql -U postgres -d barofit -f - < .artifacts/seed.sql
+# 2) 위 SQL을 postgres에 적용 (-i 없으면 stdin이 안 전달돼 아무 일도 안 일어난다 — 실측으로 확인함)
+kubectl exec -i -n barofit <postgres-pod> -- psql -U postgres -d barofit -f - < .artifacts/seed.sql
 
 # 3) users.json의 첫 사용자로 액세스 토큰 발급(스모크/루틴/운동기록/리포트 시나리오가 공유해서 쓴다)
 JWT_PRIVATE_KEY_PATH=./keys/jwt-private.pem JWT_PUBLIC_JWKS_PATH=./keys/jwt-jwks.json \
@@ -71,8 +71,10 @@ performance-tests/
 - 시나리오 6(인증 리프레시)만 예외적으로 VU별 refresh token 풀을 쓴다 — 토큰이 매 호출마다
   회전(rotation)해서 공유하면 동시 요청 중 하나만 성공하기 때문이다. 풀 크기(`seed-baseline-data.mjs`
   의 count)는 stress 단계 최대 VU 수(`lib/stages.js` 기준 100) 이상으로 유지해야 한다.
-- 시나리오 3의 `routineSnapshot: {}`, `sets: []`가 실제 서비스 검증을 통과하는지는 아직 실제
-  클러스터에 대고 돌려본 적이 없어 확정이 아니다(최초 실행 시 확인 필요).
+- 시나리오 3은 `routineSnapshot`에 `{}`를 보내면 `400 INVALID_WORKOUT`("시작 시점의 루틴 상세
+  스냅샷이 필요합니다")로 거절당한다 — 실제 클러스터에 돌려보고 확인한 뒤 바로잡았다. 루틴 생성
+  POST 응답 자체가 `Detail` 타입이라 그걸 그대로 `routineSnapshot`으로 재사용하면 된다
+  (`setup()`에서 처리). `sets: []`는 검증 없이 통과한다.
 - thresholds(pass/fail 게이트)는 아직 걸지 않았다 — 지금은 수치를 측정·기록하는 단계이고, CI 게이트로
   쓰는 건 baseline 수치가 쌓인 뒤의 다음 단계다.
 

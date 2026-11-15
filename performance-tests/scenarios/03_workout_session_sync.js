@@ -21,7 +21,10 @@ export function setup() {
   if (res.status !== 201) {
     throw new Error(`setup용 루틴 생성 실패: ${res.status} ${res.body}`);
   }
-  return { routineId: res.json('id') };
+  // POST 응답 자체가 RoutineController#detail과 같은 Detail 타입이라 그대로 스냅샷으로 재사용한다.
+  // {}를 보내면 "시작 시점의 루틴 상세 스냅샷이 필요합니다"(400 INVALID_WORKOUT)로 거절당함을 실측으로 확인했다.
+  const detail = res.json();
+  return { routineId: detail.id, routineSnapshot: detail };
 }
 
 export default function (data) {
@@ -29,7 +32,7 @@ export default function (data) {
   const now = new Date();
   const body = {
     routineId: data.routineId,
-    routineSnapshot: {},
+    routineSnapshot: data.routineSnapshot,
     status: 'COMPLETED',
     revision: 1,
     startedAt: new Date(now.getTime() - 60000).toISOString(),

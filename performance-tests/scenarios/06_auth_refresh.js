@@ -42,5 +42,7 @@ export default function () {
   const ok = check(res, { '200 재발급': (r) => r.status === 200 });
   if (ok) {
     currentToken = res.json('refreshToken');
+  } else {
+    console.error(`VU ${__VU} refresh 실패: ${res.status} ${res.body}`);
   }
 }
