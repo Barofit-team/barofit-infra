@@ -29,3 +29,6 @@ terraform.rc
 
 # Provider lock files are intentionally tracked
 !**/.terraform.lock.hcl
+
+# Local Terraform backup files
+*.tf.bak
