@@ -32,7 +32,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "barofit-dev-public-${count.index + 1}"
+    Name                     = "barofit-dev-public-${count.index + 1}"
     "kubernetes.io/role/elb" = "1"
   }
 }
@@ -45,7 +45,7 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "barofit-dev-private-${count.index + 1}"
+    Name                              = "barofit-dev-private-${count.index + 1}"
     "kubernetes.io/role/internal-elb" = "1"
   }
 }
@@ -124,7 +124,7 @@ resource "aws_eks_cluster" "barofit" {
   role_arn = aws_iam_role.eks_cluster.arn
 
   vpc_config {
-    subnet_ids = aws_subnet.private[*].id
+    subnet_ids              = aws_subnet.private[*].id
     endpoint_private_access = true
     endpoint_public_access  = false
   }

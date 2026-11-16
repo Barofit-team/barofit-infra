@@ -1,0 +1,48 @@
+name: BaroFit EKS Terraform Validation
+
+on:
+  push:
+    branches:
+      - feat/cd-ecr-helm-gitops
+    paths:
+      - "terraform/eks-dev/**"
+      - ".github/workflows/eks-terraform-validate.yml"
+
+  pull_request:
+    paths:
+      - "terraform/eks-dev/**"
+      - ".github/workflows/eks-terraform-validate.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-eks:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform/eks-dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - name: Check Terraform format
+        run: terraform fmt -check -recursive
+
+      - name: Initialize without backend
+        run: terraform init -backend=false -input=false
+
+      - name: Validate EKS Terraform
+        run: terraform validate -no-color
+
+      - name: Complete
+        run: echo "EKS Terraform validation completed"
