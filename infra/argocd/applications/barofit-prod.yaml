@@ -1,0 +1,24 @@
+# PRODUCTION DRAFT - DO NOT SYNC BEFORE TEAM APPROVAL
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: barofit-prod
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Barofit-team/barofit-infra.git
+    targetRevision: main
+    path: infra/umbrella
+    helm:
+      valueFiles:
+        - ../values-ecr-prod.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: barofit
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
