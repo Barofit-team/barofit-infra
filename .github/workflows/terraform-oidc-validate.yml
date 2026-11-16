@@ -1,0 +1,48 @@
+name: BaroFit OIDC Terraform Validation
+
+on:
+  push:
+    branches:
+      - feat/cd-ecr-helm-gitops
+    paths:
+      - "terraform/github-oidc/**"
+      - ".github/workflows/terraform-oidc-validate.yml"
+
+  pull_request:
+    paths:
+      - "terraform/github-oidc/**"
+      - ".github/workflows/terraform-oidc-validate.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-validate:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform/github-oidc
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - name: Terraform format
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init without backend
+        run: terraform init -backend=false -input=false
+
+      - name: Terraform validate
+        run: terraform validate -no-color
+
+      - name: Validation complete
+        run: echo "OIDC Terraform validation successful"
