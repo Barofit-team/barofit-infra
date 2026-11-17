@@ -5,7 +5,7 @@ locals {
 
   github_subjects = [
     for service in var.services :
-    "repo:${var.github_organization}/barofit-${service}:ref:refs/heads/dev"
+    "repo:${var.github_organization}/barofit-${service}:ref:refs/heads/main"
   ]
 
   ecr_repository_arns = [
@@ -24,7 +24,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 
 data "aws_iam_policy_document" "github_trust" {
   statement {
-    sid     = "AllowApprovedGitHubDevBranches"
+    sid     = "AllowApprovedGitHubMainBranches"
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
@@ -59,7 +59,7 @@ resource "aws_iam_role" "github_ecr_push" {
 
   assume_role_policy = data.aws_iam_policy_document.github_trust.json
 
-  description = "GitHub Actions ECR push for approved BaroFit dev branches"
+  description = "GitHub Actions ECR push for approved BaroFit main branches"
 }
 
 data "aws_iam_policy_document" "ecr_push" {
