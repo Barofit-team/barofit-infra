@@ -41,7 +41,7 @@ secrets:
 
 config:
   CORS_ALLOWED_ORIGINS: "http://localhost:8081"
-  ANALYTICS_DB_URL: "jdbc:postgresql://postgres:5432/barofit?currentSchema=analytics"
+  DB_URL: "jdbc:postgresql://postgres:5432/barofit"
   JWT_PUBLIC_JWKS_PATH: /app/secrets/jwt-jwks.json
   WORKOUT_BASE_URL: "http://workout-service:8080"
   # application.yaml 기본값(3007)이 아니라 컨테이너 내부 포트 8080으로 강제 (compose.yaml과 동일)
