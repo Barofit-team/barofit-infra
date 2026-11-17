@@ -99,3 +99,11 @@ terraform.rc
 
 # Provider lock files are intentionally tracked
 !.terraform.lock.hcl
+
+# Helm packaged charts
+/infra/umbrella/charts/*.tgz
+
+# Performance test artifacts
+/performance-tests/.artifacts/
+/performance-tests/results/*.json
+!/performance-tests/results/.gitkeep
