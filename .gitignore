@@ -61,16 +61,49 @@ out/
 .vscode/
 
 ### Terraform ###
-**/.terraform/*
+# 저장소 전체 Terraform 경로(infra/terraform/**, terraform/ecr/ 등)에 공통 적용한다.
+
+# Local working directories (providers, modules, backend 설정 캐시)
+.terraform/
+
+# State files (local state, backup, lock info)
 *.tfstate
 *.tfstate.*
-crash.log
-crash.*.log
+
+# Plan files (리소스 속성이 평문으로 포함될 수 있음)
+*.tfplan
+*.tfplan.json
+tfplan
+plan.out
+
+# Variable files (비밀정보 포함 가능; *.auto.tfvars 포함)
 *.tfvars
 *.tfvars.json
+
+# Override files
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Crash logs
+crash.log
+crash.*.log
+
+# CLI configuration
 .terraformrc
 terraform.rc
+
+# Local backup files
+*.tf.bak
+
+# Provider lock files are intentionally tracked
+!.terraform.lock.hcl
+
+# Helm packaged charts
+/infra/umbrella/charts/*.tgz
+
+# Performance test artifacts
+/performance-tests/.artifacts/
+/performance-tests/results/*.json
+!/performance-tests/results/.gitkeep
