@@ -25,14 +25,8 @@ probe:
   path: /actuator/health
   port: 8080
 
-waitForPostgres:
-  enabled: true
-  image: postgres:18.6
-  host: postgres
-  port: 5432
-
 secrets:
-  postgresSecretName: barofit-postgres-credentials
+  postgresSecretName: routine-db-credentials
   jwtSecretName: barofit-jwt-keys
   jwtIncludePrivateKey: false
   appSecretName: ""
@@ -40,7 +34,7 @@ secrets:
 
 config:
   CORS_ALLOWED_ORIGINS: "http://localhost:8081"
-  DB_URL: "jdbc:postgresql://postgres:5432/barofit"
+  DB_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   JWT_PUBLIC_JWKS_PATH: /app/secrets/jwt-jwks.json
   IDENTITY_BASE_URL: "http://identity-service:8080"
   WORKOUT_BASE_URL: "http://workout-service:8080"
