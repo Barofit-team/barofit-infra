@@ -152,3 +152,41 @@ cd integration-tests
 `../keys`).
 
 전부 정상이면 Phase 1(모노레포 내 구축) + Phase 3(폴리레포 분리 후 재배포 검증)까지 완료다.
+
+## 8. (prod 전용) External Secrets Operator — AWS Secrets Manager 연동
+
+minikube에는 적용되지 않는다(AWS 접근 불필요). `barofit-prod` EKS 클러스터에서만 사용한다.
+
+ESO는 서드파티 Helm 차트라 이 레포에 코드로 두지 않고, 1회성 운영 명령으로 직접 설치한다. IAM
+정책/역할/Pod Identity Association은 `infra/terraform/environments/prod/eso_iam.tf`에서 관리한다.
+
+```bash
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update external-secrets
+helm install external-secrets external-secrets/external-secrets \
+  --kube-context <barofit-prod kubeconfig context> \
+  -n external-secrets --create-namespace \
+  --version 2.15.0 \
+  --set serviceAccount.name=external-secrets
+```
+
+`serviceAccount.name=external-secrets`를 명시적으로 고정해 `eso_iam.tf`의
+`aws_eks_pod_identity_association`과 이름이 정확히 일치하도록 한다.
+
+설치 후 `infra/eso/`의 매니페스트를 순서대로 apply한다(ArgoCD로 묶는 건 GitOps 담당 팀원의 몫 —
+여기서는 매니페스트만 준비·직접 적용):
+
+```bash
+kubectl apply -f infra/eso/cluster-secret-store.yaml
+kubectl apply -f infra/eso/external-secret-jwt-keys.yaml
+kubectl apply -f infra/eso/external-secret-workout.yaml
+kubectl apply -f infra/eso/external-secret-analytics-token.yaml
+kubectl apply -f infra/eso/external-secret-identity.yaml
+```
+
+`kubectl get externalsecret -n barofit`로 전부 `SecretSynced`인지 확인한다.
+
+**postgres(`{svc}-db-credentials` 5개)는 아직 ExternalSecret이 없다** — AWS Secrets Manager에
+서비스별 RDS 계정 비밀번호가 아직 등록되지 않아서다(지금은 2단계처럼 `kubectl create secret`으로
+수동 생성된 상태를 그대로 둔다). Secrets Manager에 등록되면 같은 패턴으로 5번째 ExternalSecret을
+추가하면 된다.
