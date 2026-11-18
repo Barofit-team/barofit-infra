@@ -24,5 +24,6 @@ report:
   image:
     repository: ""   # 예: docker.io/<hub-user>/barofit-report
 
-# postgres, gateway는 공용 공개 이미지(postgres:18.6, nginx:1.28-alpine)를 그대로 쓰므로
+# DB는 AWS RDS(서비스별 계정/스키마)를 사용하므로 postgres 차트는 없다.
+# gateway는 공용 공개 이미지(nginx:1.28-alpine)를 그대로 쓰므로
 # repository 오버라이드가 필요 없음 (각 차트 자체 values.yaml 기본값 사용).

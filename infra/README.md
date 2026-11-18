@@ -9,8 +9,8 @@
 
 ```
 infra/
-├─ charts/          서비스별 독립 Helm 차트 (identity, routine, workout, analytics, report, gateway, postgres)
-└─ umbrella/        7개 차트를 한 번에 설치하기 위한 편의용 umbrella 차트 (의존 결합 아님)
+├─ charts/          서비스별 독립 Helm 차트 (identity, routine, workout, analytics, report, gateway)
+└─ umbrella/        6개 차트를 한 번에 설치하기 위한 편의용 umbrella 차트 (의존 결합 아님)
 ```
 
 ## 0. 사전 준비
@@ -27,7 +27,10 @@ minikube start --cpus=4 --memory=8192
 kubectl create namespace barofit
 ```
 
-## 2. 시크릿 생성 (helm install 전 선행, 차트에는 값이 없음)
+## 2. RDS 초기화 + 시크릿 생성 (helm install 전 선행, 차트에는 값이 없음)
+
+먼저 마스터 계정으로 `infra/sql/rds-init.sql`을 1회 실행해 서비스별 계정/스키마를 만든다(파일 상단 사용법 참고).
+RDS는 `publicly_accessible=false`라 VPC 내부(EKS 파드 등)에서 실행해야 한다.
 
 ```bash
 # 1) JWT 키
@@ -35,12 +38,13 @@ kubectl -n barofit create secret generic barofit-jwt-keys \
   --from-file=jwt-jwks.json=./keys/jwt-jwks.json \
   --from-file=jwt-private.pem=./keys/jwt-private.pem
 
-# 2) DB 자격증명 (.env 값 재사용)
-kubectl -n barofit create secret generic barofit-postgres-credentials \
-  --from-literal=POSTGRES_USER=postgres \
-  --from-literal=POSTGRES_PASSWORD=postgres \
-  --from-literal=DB_USERNAME=postgres \
-  --from-literal=DB_PASSWORD=postgres
+# 2) DB 자격증명 — 서비스별 RDS 계정 (infra/sql/rds-init.sql 로 만든 계정, 각자 자기 스키마만 접근)
+#    DB는 로컬 postgres 없이 AWS RDS(barofit-prod-postgres)만 사용한다.
+for svc in identity routine workout analytics report; do
+  kubectl -n barofit create secret generic ${svc}-db-credentials \
+    --from-literal=DB_USERNAME=${svc}_user \
+    --from-literal=DB_PASSWORD="<${svc}_user 비밀번호>"
+done
 
 # 3) identity 전용 (.env 값 재사용, 비어 있는 값은 빈 문자열로)
 kubectl -n barofit create secret generic identity-app-secrets \
@@ -101,13 +105,12 @@ helm upgrade --install identity-service infra/charts/identity -n barofit \
 
 ```bash
 kubectl -n barofit get pods -w
-kubectl -n barofit get pvc                                    # postgres PVC Bound 확인
 kubectl -n barofit logs deploy/identity-service   | grep "Flyway migrated schema"
 kubectl -n barofit logs deploy/analytics-service  | grep "Flyway migrated schema 'analytics'"
 kubectl -n barofit exec -it deploy/identity-service -- cat /app/secrets/jwt-jwks.json
 ```
 
-문제가 있으면 `kubectl -n barofit describe pod <name>`으로 `wait-for-postgres` initContainer나
+문제가 있으면 `kubectl -n barofit describe pod <name>`으로 RDS 접속(보안그룹·Secret)이나
 probe 실패 여부를 먼저 확인한다.
 
 ## 6. 게이트웨이 통신 확인
@@ -149,3 +152,48 @@ cd integration-tests
 `../keys`).
 
 전부 정상이면 Phase 1(모노레포 내 구축) + Phase 3(폴리레포 분리 후 재배포 검증)까지 완료다.
+
+## 8. (prod 전용) External Secrets Operator — AWS Secrets Manager 연동
+
+minikube에는 적용되지 않는다(AWS 접근 불필요). `barofit-prod` EKS 클러스터에서만 사용한다.
+
+ESO는 서드파티 Helm 차트라 이 레포에 코드로 두지 않고, 1회성 운영 명령으로 직접 설치한다. IAM
+정책/역할/Pod Identity Association은 `infra/terraform/environments/prod/eso_iam.tf`에서 관리한다.
+
+```bash
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update external-secrets
+helm install external-secrets external-secrets/external-secrets \
+  --kube-context <barofit-prod kubeconfig context> \
+  -n external-secrets --create-namespace \
+  --version 2.15.0 \
+  --set serviceAccount.name=external-secrets
+```
+
+`serviceAccount.name=external-secrets`를 명시적으로 고정해 `eso_iam.tf`의
+`aws_eks_pod_identity_association`과 이름이 정확히 일치하도록 한다.
+
+설치 후 `infra/eso/`의 매니페스트를 순서대로 apply한다(ArgoCD로 묶는 건 GitOps 담당 팀원의 몫 —
+여기서는 매니페스트만 준비·직접 적용):
+
+```bash
+kubectl apply -f infra/eso/cluster-secret-store.yaml
+kubectl apply -f infra/eso/external-secret-jwt-keys.yaml
+kubectl apply -f infra/eso/external-secret-workout.yaml
+kubectl apply -f infra/eso/external-secret-analytics-token.yaml
+kubectl apply -f infra/eso/external-secret-identity.yaml
+kubectl apply -f infra/eso/external-secret-identity-db.yaml
+kubectl apply -f infra/eso/external-secret-routine-db.yaml
+kubectl apply -f infra/eso/external-secret-workout-db.yaml
+kubectl apply -f infra/eso/external-secret-analytics-db.yaml
+kubectl apply -f infra/eso/external-secret-report-db.yaml
+```
+
+`kubectl get externalsecret -n barofit`로 전부 `SecretSynced`인지 확인한다.
+
+**postgres(`{svc}-db-credentials` 5개)도 ESO로 관리된다**(`barofit/prod/{identity,routine,workout,
+analytics,report}-db`). Secrets Manager에 새 값을 등록할 땐, 그 값이 실제 RDS 계정 비밀번호와
+일치해야 한다 — 다르면 ESO가 K8s Secret을 갱신한 순간부터 해당 서비스가 RDS 로그인에 실패한다.
+새 비밀번호로 바꾸고 싶으면 반드시 **같은 값으로 실제 RDS 계정도 같이 교체**한다(VPC 내부에서만
+접속 가능하므로 임시 Pod로 마스터 계정 접속 후 `ALTER ROLE <svc>_user PASSWORD '...'` 실행 →
+Secrets Manager 값 갱신 → `kubectl get externalsecret -n barofit`으로 재동기화 확인, 순서로).

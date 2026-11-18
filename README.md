@@ -11,8 +11,9 @@
 ```
 barofit-infra/
 ├─ infra/
-│  ├─ charts/            서비스별 독립 Helm 차트(identity/routine/workout/analytics/report/gateway/postgres)
-│  └─ umbrella/          7개 차트를 한 번에 설치하는 편의용 umbrella 차트
+│  ├─ charts/            서비스별 독립 Helm 차트(identity/routine/workout/analytics/report/gateway)
+│  ├─ sql/rds-init.sql   RDS 최초 1회 실행: 서비스별 계정 + 스키마 생성
+│  └─ umbrella/          6개 차트를 한 번에 설치하는 편의용 umbrella 차트
 ├─ integration-tests/    identity+routine을 묶어 검증하는 회귀 테스트(독립 Gradle 프로젝트)
 ├─ scripts/
 │  ├─ build-and-push.sh      5개 서비스 레포(형제 디렉토리)를 순회하며 이미지 빌드·푸시

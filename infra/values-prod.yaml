@@ -1,0 +1,14 @@
+# Prod 환경 Helm 값 오버라이드. umbrella values.yaml과 같은 "서브차트별 블록" 구조를 따른다.
+# ArgoCD Application이 이 파일을 values로 참조하도록 연결하는 작업은 GitOps 담당 팀원 몫 — 여기서는
+# 값만 준비해둔다.
+#
+# 전제: infra/terraform/environments/prod의 profile_image_* 리소스(S3 정책/IAM/Pod Identity/
+# CloudFront)가 먼저 적용돼 있어야 한다. identity Helm 차트의 전용 ServiceAccount("identity-service")
+# 가 Pod Identity Association 대상이다.
+
+identity:
+  config:
+    PROFILE_IMAGE_STORAGE: "s3"
+    PROFILE_IMAGE_S3_BUCKET: "barofit-profile-images"
+    PROFILE_IMAGE_S3_REGION: "ap-northeast-2"
+    PROFILE_IMAGE_PUBLIC_BASE_URL: "https://img.barofit.cloud"

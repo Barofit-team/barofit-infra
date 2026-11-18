@@ -1,7 +1,4 @@
 dependencies:
-- name: postgres
-  repository: file://../charts/postgres
-  version: 0.1.0
 - name: identity
   repository: file://../charts/identity
   version: 0.1.0
