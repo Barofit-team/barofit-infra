@@ -27,3 +27,7 @@ analytics:
 report:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-report"
+# Production uses an external database.
+# Do not deploy the in-cluster PostgreSQL chart.
+postgres:
+  enabled: false

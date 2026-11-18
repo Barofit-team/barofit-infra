@@ -6,6 +6,7 @@ version: 0.1.0
 appVersion: "1.0.0"
 dependencies:
   - name: postgres
+    condition: postgres.enabled
     version: "0.1.0"
     repository: "file://../charts/postgres"
   - name: identity
