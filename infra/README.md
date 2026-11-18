@@ -182,11 +182,18 @@ kubectl apply -f infra/eso/external-secret-jwt-keys.yaml
 kubectl apply -f infra/eso/external-secret-workout.yaml
 kubectl apply -f infra/eso/external-secret-analytics-token.yaml
 kubectl apply -f infra/eso/external-secret-identity.yaml
+kubectl apply -f infra/eso/external-secret-identity-db.yaml
+kubectl apply -f infra/eso/external-secret-routine-db.yaml
+kubectl apply -f infra/eso/external-secret-workout-db.yaml
+kubectl apply -f infra/eso/external-secret-analytics-db.yaml
+kubectl apply -f infra/eso/external-secret-report-db.yaml
 ```
 
 `kubectl get externalsecret -n barofit`로 전부 `SecretSynced`인지 확인한다.
 
-**postgres(`{svc}-db-credentials` 5개)는 아직 ExternalSecret이 없다** — AWS Secrets Manager에
-서비스별 RDS 계정 비밀번호가 아직 등록되지 않아서다(지금은 2단계처럼 `kubectl create secret`으로
-수동 생성된 상태를 그대로 둔다). Secrets Manager에 등록되면 같은 패턴으로 5번째 ExternalSecret을
-추가하면 된다.
+**postgres(`{svc}-db-credentials` 5개)도 ESO로 관리된다**(`barofit/prod/{identity,routine,workout,
+analytics,report}-db`). Secrets Manager에 새 값을 등록할 땐, 그 값이 실제 RDS 계정 비밀번호와
+일치해야 한다 — 다르면 ESO가 K8s Secret을 갱신한 순간부터 해당 서비스가 RDS 로그인에 실패한다.
+새 비밀번호로 바꾸고 싶으면 반드시 **같은 값으로 실제 RDS 계정도 같이 교체**한다(VPC 내부에서만
+접속 가능하므로 임시 Pod로 마스터 계정 접속 후 `ALTER ROLE <svc>_user PASSWORD '...'` 실행 →
+Secrets Manager 값 갱신 → `kubectl get externalsecret -n barofit`으로 재동기화 확인, 순서로).
