@@ -9,8 +9,8 @@
 
 ```
 infra/
-├─ charts/          서비스별 독립 Helm 차트 (identity, routine, workout, analytics, report, gateway, postgres)
-└─ umbrella/        7개 차트를 한 번에 설치하기 위한 편의용 umbrella 차트 (의존 결합 아님)
+├─ charts/          서비스별 독립 Helm 차트 (identity, routine, workout, analytics, report, gateway)
+└─ umbrella/        6개 차트를 한 번에 설치하기 위한 편의용 umbrella 차트 (의존 결합 아님)
 ```
 
 ## 0. 사전 준비
@@ -27,7 +27,10 @@ minikube start --cpus=4 --memory=8192
 kubectl create namespace barofit
 ```
 
-## 2. 시크릿 생성 (helm install 전 선행, 차트에는 값이 없음)
+## 2. RDS 초기화 + 시크릿 생성 (helm install 전 선행, 차트에는 값이 없음)
+
+먼저 마스터 계정으로 `infra/sql/rds-init.sql`을 1회 실행해 서비스별 계정/스키마를 만든다(파일 상단 사용법 참고).
+RDS는 `publicly_accessible=false`라 VPC 내부(EKS 파드 등)에서 실행해야 한다.
 
 ```bash
 # 1) JWT 키
@@ -35,12 +38,13 @@ kubectl -n barofit create secret generic barofit-jwt-keys \
   --from-file=jwt-jwks.json=./keys/jwt-jwks.json \
   --from-file=jwt-private.pem=./keys/jwt-private.pem
 
-# 2) DB 자격증명 (.env 값 재사용)
-kubectl -n barofit create secret generic barofit-postgres-credentials \
-  --from-literal=POSTGRES_USER=postgres \
-  --from-literal=POSTGRES_PASSWORD=postgres \
-  --from-literal=DB_USERNAME=postgres \
-  --from-literal=DB_PASSWORD=postgres
+# 2) DB 자격증명 — 서비스별 RDS 계정 (infra/sql/rds-init.sql 로 만든 계정, 각자 자기 스키마만 접근)
+#    DB는 로컬 postgres 없이 AWS RDS(barofit-prod-postgres)만 사용한다.
+for svc in identity routine workout analytics report; do
+  kubectl -n barofit create secret generic ${svc}-db-credentials \
+    --from-literal=DB_USERNAME=${svc}_user \
+    --from-literal=DB_PASSWORD="<${svc}_user 비밀번호>"
+done
 
 # 3) identity 전용 (.env 값 재사용, 비어 있는 값은 빈 문자열로)
 kubectl -n barofit create secret generic identity-app-secrets \
@@ -101,13 +105,12 @@ helm upgrade --install identity-service infra/charts/identity -n barofit \
 
 ```bash
 kubectl -n barofit get pods -w
-kubectl -n barofit get pvc                                    # postgres PVC Bound 확인
 kubectl -n barofit logs deploy/identity-service   | grep "Flyway migrated schema"
 kubectl -n barofit logs deploy/analytics-service  | grep "Flyway migrated schema 'analytics'"
 kubectl -n barofit exec -it deploy/identity-service -- cat /app/secrets/jwt-jwks.json
 ```
 
-문제가 있으면 `kubectl -n barofit describe pod <name>`으로 `wait-for-postgres` initContainer나
+문제가 있으면 `kubectl -n barofit describe pod <name>`으로 RDS 접속(보안그룹·Secret)이나
 probe 실패 여부를 먼저 확인한다.
 
 ## 6. 게이트웨이 통신 확인

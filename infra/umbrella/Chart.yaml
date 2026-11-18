@@ -1,13 +1,10 @@
 apiVersion: v2
 name: barofit
-description: Umbrella chart for local minikube install (convenience wrapper only; each subchart stays independently installable)
+description: Umbrella chart (convenience wrapper only; each subchart stays independently installable). DB는 AWS RDS를 사용하므로 postgres 차트는 포함하지 않는다
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
 dependencies:
-  - name: postgres
-    version: "0.1.0"
-    repository: "file://../charts/postgres"
   - name: identity
     version: "0.1.0"
     repository: "file://../charts/identity"

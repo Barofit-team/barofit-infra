@@ -25,14 +25,8 @@ probe:
   path: /actuator/health
   port: 8080
 
-waitForPostgres:
-  enabled: true
-  image: postgres:18.6
-  host: postgres
-  port: 5432
-
 secrets:
-  postgresSecretName: barofit-postgres-credentials
+  postgresSecretName: identity-db-credentials
   jwtSecretName: barofit-jwt-keys
   jwtIncludePrivateKey: true
   appSecretName: identity-app-secrets
@@ -41,7 +35,7 @@ secrets:
 # 평문이어도 되는 값만 (경로 문자열, CORS 등). 민감값은 secrets.appSecretName 쪽 Secret에서 envFrom.
 config:
   CORS_ALLOWED_ORIGINS: "http://localhost:8081"
-  DB_URL: "jdbc:postgresql://postgres:5432/barofit"
+  DB_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   JWT_PUBLIC_JWKS_PATH: /app/secrets/jwt-jwks.json
   JWT_PRIVATE_KEY_PATH: /app/secrets/jwt-private.pem
   # application.yaml 기본값(3004)이 아니라 컨테이너 내부 포트 8080으로 강제 (compose.yaml과 동일)

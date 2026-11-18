@@ -16,19 +16,6 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
-      {{- if .Values.waitForPostgres.enabled }}
-      initContainers:
-        - name: wait-for-postgres
-          image: "{{ .Values.waitForPostgres.image }}"
-          command:
-            - sh
-            - -c
-            - |
-              until pg_isready -h {{ .Values.waitForPostgres.host }} -p {{ .Values.waitForPostgres.port }} -U postgres -d barofit; do
-                echo "waiting for postgres...";
-                sleep 2;
-              done
-      {{- end }}
       containers:
         - name: routine
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Values.global.imageTag | default "latest" }}"
