@@ -27,7 +27,7 @@ jobs:
           version: v3.17.3
 
       - name: Build Helm dependencies
-        run: helm dependency build infra/umbrella
+        run: helm dependency update infra/umbrella
 
       - name: Lint Helm chart
         run: |
