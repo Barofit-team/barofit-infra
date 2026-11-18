@@ -21,10 +21,14 @@ workout:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-workout"
 
 analytics:
+  config:
+    SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-analytics"
 
 report:
+  config:
+    SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-report"
 # Production uses an external database.
