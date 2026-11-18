@@ -152,3 +152,48 @@ cd integration-tests
 `../keys`).
 
 전부 정상이면 Phase 1(모노레포 내 구축) + Phase 3(폴리레포 분리 후 재배포 검증)까지 완료다.
+
+## 8. (prod 전용) External Secrets Operator — AWS Secrets Manager 연동
+
+minikube에는 적용되지 않는다(AWS 접근 불필요). `barofit-prod` EKS 클러스터에서만 사용한다.
+
+ESO는 서드파티 Helm 차트라 이 레포에 코드로 두지 않고, 1회성 운영 명령으로 직접 설치한다. IAM
+정책/역할/Pod Identity Association은 `infra/terraform/environments/prod/eso_iam.tf`에서 관리한다.
+
+```bash
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update external-secrets
+helm install external-secrets external-secrets/external-secrets \
+  --kube-context <barofit-prod kubeconfig context> \
+  -n external-secrets --create-namespace \
+  --version 2.15.0 \
+  --set serviceAccount.name=external-secrets
+```
+
+`serviceAccount.name=external-secrets`를 명시적으로 고정해 `eso_iam.tf`의
+`aws_eks_pod_identity_association`과 이름이 정확히 일치하도록 한다.
+
+설치 후 `infra/eso/`의 매니페스트를 순서대로 apply한다(ArgoCD로 묶는 건 GitOps 담당 팀원의 몫 —
+여기서는 매니페스트만 준비·직접 적용):
+
+```bash
+kubectl apply -f infra/eso/cluster-secret-store.yaml
+kubectl apply -f infra/eso/external-secret-jwt-keys.yaml
+kubectl apply -f infra/eso/external-secret-workout.yaml
+kubectl apply -f infra/eso/external-secret-analytics-token.yaml
+kubectl apply -f infra/eso/external-secret-identity.yaml
+kubectl apply -f infra/eso/external-secret-identity-db.yaml
+kubectl apply -f infra/eso/external-secret-routine-db.yaml
+kubectl apply -f infra/eso/external-secret-workout-db.yaml
+kubectl apply -f infra/eso/external-secret-analytics-db.yaml
+kubectl apply -f infra/eso/external-secret-report-db.yaml
+```
+
+`kubectl get externalsecret -n barofit`로 전부 `SecretSynced`인지 확인한다.
+
+**postgres(`{svc}-db-credentials` 5개)도 ESO로 관리된다**(`barofit/prod/{identity,routine,workout,
+analytics,report}-db`). Secrets Manager에 새 값을 등록할 땐, 그 값이 실제 RDS 계정 비밀번호와
+일치해야 한다 — 다르면 ESO가 K8s Secret을 갱신한 순간부터 해당 서비스가 RDS 로그인에 실패한다.
+새 비밀번호로 바꾸고 싶으면 반드시 **같은 값으로 실제 RDS 계정도 같이 교체**한다(VPC 내부에서만
+접속 가능하므로 임시 Pod로 마스터 계정 접속 후 `ALTER ROLE <svc>_user PASSWORD '...'` 실행 →
+Secrets Manager 값 갱신 → `kubectl get externalsecret -n barofit`으로 재동기화 확인, 순서로).
