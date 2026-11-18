@@ -8,29 +8,29 @@ postgres:
 identity:
   waitForPostgres:
     host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
-  env:
+  config:
     DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit
 
 routine:
   waitForPostgres:
     host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
-  env:
+  config:
     DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit
 
 workout:
   waitForPostgres:
     host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
-  env:
+  config:
     DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit
 
 analytics:
   waitForPostgres:
     host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
-  env:
+  config:
     ANALYTICS_DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit?currentSchema=analytics
 
 report:
   waitForPostgres:
     host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
-  env:
+  config:
     REPORT_DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit?currentSchema=report
