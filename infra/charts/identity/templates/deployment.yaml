@@ -16,6 +16,7 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
+      serviceAccountName: {{ include "identity.name" . }}
       {{- if .Values.waitForPostgres.enabled }}
       initContainers:
         - name: wait-for-postgres
