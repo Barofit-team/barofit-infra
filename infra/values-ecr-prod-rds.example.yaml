@@ -1,0 +1,36 @@
+# EXAMPLE ONLY - NOT FOR DIRECT PRODUCTION DEPLOYMENT
+# Replace the placeholder with the team-approved RDS endpoint.
+# Do not store DB passwords in this file.
+
+postgres:
+  enabled: false
+
+identity:
+  waitForPostgres:
+    host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
+  config:
+    DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit
+
+routine:
+  waitForPostgres:
+    host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
+  config:
+    DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit
+
+workout:
+  waitForPostgres:
+    host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
+  config:
+    DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit
+
+analytics:
+  waitForPostgres:
+    host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
+  config:
+    ANALYTICS_DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit?currentSchema=analytics
+
+report:
+  waitForPostgres:
+    host: REPLACE_WITH_APPROVED_RDS_ENDPOINT
+  config:
+    REPORT_DB_URL: jdbc:postgresql://REPLACE_WITH_APPROVED_RDS_ENDPOINT:5432/barofit?currentSchema=report

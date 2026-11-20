@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: barofit-dev
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Barofit-team/barofit-infra.git
+    targetRevision: dev
+    path: infra/umbrella
+    helm:
+      valueFiles:
+        - ../values-ecr-dev.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: barofit
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

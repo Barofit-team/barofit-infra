@@ -1,0 +1,26 @@
+# BaroFit ECR image configuration
+# Initial image tag verified from team ECR handoff
+# Not a production-ready deployment configuration
+
+global:
+  imageTag: "80c8f67"
+
+identity:
+  image:
+    repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-identity"
+
+routine:
+  image:
+    repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-routine"
+
+workout:
+  image:
+    repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-workout"
+
+analytics:
+  image:
+    repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-analytics"
+
+report:
+  image:
+    repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-report"

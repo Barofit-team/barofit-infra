@@ -1,0 +1,42 @@
+name: BaroFit Production Readiness
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/prod-readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-readiness:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate production configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Checking production deployment prerequisites"
+
+          if ! grep -q "PRODUCTION DRAFT" infra/values-ecr-prod.yaml; then
+            echo "Production values draft marker missing"
+            exit 1
+          fi
+
+          if ! grep -q "DO NOT SYNC BEFORE TEAM APPROVAL" infra/argocd/applications/barofit-prod.yaml; then
+            echo "Argo CD safety marker missing"
+            exit 1
+          fi
+
+          if grep -Eq "automated:" infra/argocd/applications/barofit-prod.yaml; then
+            echo "Production auto-sync must remain disabled"
+            exit 1
+          fi
+
+          echo "PASS: Unapproved production auto-sync is disabled"
