@@ -1,0 +1,352 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Daily Barofit worker/RDS start at 08:30 and stop at 19:00 Asia/Seoul. Data and networking are retained.",
+  "Parameters": {
+    "ClusterName": {
+      "Type": "String",
+      "Default": "barofit-prod"
+    },
+    "NodegroupName": {
+      "Type": "String",
+      "Default": "barofit-prod-ng"
+    },
+    "DatabaseId": {
+      "Type": "String",
+      "Default": "barofit-prod-postgres"
+    },
+    "StartMinSize": {
+      "Type": "Number",
+      "Default": 1,
+      "MinValue": 0
+    },
+    "StartDesiredSize": {
+      "Type": "Number",
+      "Default": 1,
+      "MinValue": 1
+    }
+  },
+  "Resources": {
+    "Group": {
+      "Type": "AWS::Scheduler::ScheduleGroup",
+      "Properties": {
+        "Name": "barofit-business-hours"
+      }
+    },
+    "FailureQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "SqsManagedSseEnabled": true,
+        "MessageRetentionPeriod": 1209600
+      }
+    },
+    "Logs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/barofit-business-hours",
+        "RetentionInDays": 14
+      }
+    },
+    "FunctionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "BarofitResourceSchedule",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "eks:DescribeNodegroup",
+                    "eks:UpdateNodegroupConfig"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:nodegroup/${ClusterName}/${NodegroupName}/*"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "rds:DescribeDBInstances",
+                    "rds:StartDBInstance",
+                    "rds:StopDBInstance"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:${DatabaseId}"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/barofit-business-hours:*"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:SendMessage"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "FailureQueue",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Function": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": "Logs",
+      "Properties": {
+        "FunctionName": "barofit-business-hours",
+        "Runtime": "python3.13",
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "FunctionRole",
+            "Arn"
+          ]
+        },
+        "Timeout": 60,
+        "MemorySize": 128,
+        "Code": {
+          "ZipFile": "\"\"\"Start/stop the configured Barofit resources during Asia/Seoul business hours.\"\"\"\nimport json\nimport os\nfrom datetime import datetime\nfrom zoneinfo import ZoneInfo\n\nimport boto3\n\n\ndef _nodegroup(client, action):\n    cluster, group = os.environ['CLUSTER_NAME'], os.environ['NODEGROUP_NAME']\n    node = client.describe_nodegroup(clusterName=cluster, nodegroupName=group)['nodegroup']\n    if action == 'status':\n        return {'status': node['status'], 'scaling': node['scalingConfig']}\n    if node['status'] != 'ACTIVE':\n        raise RuntimeError('Node group is not ACTIVE; retry required')\n    scaling = node['scalingConfig']\n    minimum = max(scaling['minSize'], int(os.environ['START_MIN_SIZE'])) if action == 'start' else 0\n    desired = max(scaling['desiredSize'], int(os.environ['START_DESIRED_SIZE']), minimum) if action == 'start' else 0\n    if desired > scaling['maxSize']:\n        raise RuntimeError('Configured morning size exceeds node group maximum')\n    if scaling['minSize'] == minimum and scaling['desiredSize'] == desired:\n        return {'result': 'unchanged', 'desired': desired}\n    update = client.update_nodegroup_config(\n        clusterName=cluster, nodegroupName=group,\n        scalingConfig={'minSize': minimum, 'desiredSize': desired})\n    return {'result': 'requested', 'desired': desired, 'updateId': update['update']['id']}\n\n\ndef _database(client, action):\n    identifier = os.environ['DB_INSTANCE_ID']\n    db = client.describe_db_instances(DBInstanceIdentifier=identifier)['DBInstances'][0]\n    state = db['DBInstanceStatus']\n    if action == 'status':\n        return {'status': state}\n    if action == 'start' and state in ('available', 'starting'):\n        return {'result': 'unchanged', 'status': state}\n    if action == 'stop' and state in ('stopped', 'stopping'):\n        return {'result': 'unchanged', 'status': state}\n    required = 'stopped' if action == 'start' else 'available'\n    if state != required:\n        raise RuntimeError('Database is in a transitional state; retry required')\n    operation = client.start_db_instance if action == 'start' else client.stop_db_instance\n    operation(DBInstanceIdentifier=identifier)\n    return {'result': 'requested', 'action': action}\n\n\ndef handler(event, context):\n    action = event.get('action')\n    if action not in ('start', 'stop', 'status'):\n        raise ValueError('Expected action=start, stop, or status')\n    now = datetime.now(ZoneInfo('Asia/Seoul'))\n    minute = now.hour * 60 + now.minute\n    business_hours = 8 * 60 + 30 <= minute < 19 * 60\n    # A delayed retry must never reopen resources after closing time, or close\n    # resources after the next morning's start time.\n    if action != 'status' and ((action == 'start') != business_hours):\n        result = {'action': action, 'result': 'skipped_outside_action_window', 'time': now.isoformat()}\n        print(json.dumps(result))\n        return result\n    eks, rds = boto3.client('eks'), boto3.client('rds')\n    result = {'action': action, 'time': now.isoformat()}\n    if action == 'start':\n        result['rds'] = _database(rds, action)\n        result['eks'] = _nodegroup(eks, action)\n    else:\n        result['eks'] = _nodegroup(eks, action)\n        result['rds'] = _database(rds, action)\n    print(json.dumps(result))\n    return result\n"
+        },
+        "Environment": {
+          "Variables": {
+            "CLUSTER_NAME": {
+              "Ref": "ClusterName"
+            },
+            "NODEGROUP_NAME": {
+              "Ref": "NodegroupName"
+            },
+            "DB_INSTANCE_ID": {
+              "Ref": "DatabaseId"
+            },
+            "START_MIN_SIZE": {
+              "Ref": "StartMinSize"
+            },
+            "START_DESIRED_SIZE": {
+              "Ref": "StartDesiredSize"
+            }
+          }
+        }
+      }
+    },
+    "AsyncRetries": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "Function"
+        },
+        "Qualifier": "$LATEST",
+        "MaximumEventAgeInSeconds": 900,
+        "MaximumRetryAttempts": 2,
+        "DestinationConfig": {
+          "OnFailure": {
+            "Destination": {
+              "Fn::GetAtt": [
+                "FailureQueue",
+                "Arn"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "SchedulerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "scheduler.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceAccount": {
+                    "Ref": "AWS::AccountId"
+                  }
+                },
+                "ArnEquals": {
+                  "aws:SourceArn": {
+                    "Fn::GetAtt": [
+                      "Group",
+                      "Arn"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "InvokeBarofitSchedule",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "Function",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:SendMessage"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "FailureQueue",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "StartSchedule": {
+      "Type": "AWS::Scheduler::Schedule",
+      "Properties": {
+        "Name": "barofit-start-daily",
+        "GroupName": {
+          "Ref": "Group"
+        },
+        "Description": "Daily start of Barofit EKS workers and RDS; Asia/Seoul",
+        "ScheduleExpression": "cron(30 8 * * ? *)",
+        "ScheduleExpressionTimezone": "Asia/Seoul",
+        "FlexibleTimeWindow": {
+          "Mode": "OFF"
+        },
+        "State": "ENABLED",
+        "Target": {
+          "Arn": {
+            "Fn::GetAtt": [
+              "Function",
+              "Arn"
+            ]
+          },
+          "RoleArn": {
+            "Fn::GetAtt": [
+              "SchedulerRole",
+              "Arn"
+            ]
+          },
+          "Input": "{\"action\": \"start\"}",
+          "RetryPolicy": {
+            "MaximumEventAgeInSeconds": 900,
+            "MaximumRetryAttempts": 3
+          },
+          "DeadLetterConfig": {
+            "Arn": {
+              "Fn::GetAtt": [
+                "FailureQueue",
+                "Arn"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "StopSchedule": {
+      "Type": "AWS::Scheduler::Schedule",
+      "Properties": {
+        "Name": "barofit-stop-daily",
+        "GroupName": {
+          "Ref": "Group"
+        },
+        "Description": "Daily stop of Barofit EKS workers and RDS; Asia/Seoul",
+        "ScheduleExpression": "cron(0 19 * * ? *)",
+        "ScheduleExpressionTimezone": "Asia/Seoul",
+        "FlexibleTimeWindow": {
+          "Mode": "OFF"
+        },
+        "State": "ENABLED",
+        "Target": {
+          "Arn": {
+            "Fn::GetAtt": [
+              "Function",
+              "Arn"
+            ]
+          },
+          "RoleArn": {
+            "Fn::GetAtt": [
+              "SchedulerRole",
+              "Arn"
+            ]
+          },
+          "Input": "{\"action\": \"stop\"}",
+          "RetryPolicy": {
+            "MaximumEventAgeInSeconds": 900,
+            "MaximumRetryAttempts": 3
+          },
+          "DeadLetterConfig": {
+            "Arn": {
+              "Fn::GetAtt": [
+                "FailureQueue",
+                "Arn"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "FunctionName": {
+      "Value": {
+        "Ref": "Function"
+      }
+    },
+    "ScheduleGroup": {
+      "Value": {
+        "Ref": "Group"
+      }
+    },
+    "FailureQueueUrl": {
+      "Value": {
+        "Ref": "FailureQueue"
+      }
+    },
+    "Timezone": {
+      "Value": "Asia/Seoul"
+    }
+  }
+}

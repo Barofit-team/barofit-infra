@@ -61,6 +61,11 @@ resource "aws_eks_node_group" "main" {
     max_size     = 2
   }
 
+  lifecycle {
+    # EventBridge Scheduler owns daily start/stop capacity; retain the maximum here.
+    ignore_changes = [scaling_config[0].min_size, scaling_config[0].desired_size]
+  }
+
   update_config {
     max_unavailable = 1
   }
