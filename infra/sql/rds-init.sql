@@ -16,6 +16,10 @@ CREATE ROLE workout_user   LOGIN PASSWORD :workout_pw;
 CREATE ROLE analytics_user LOGIN PASSWORD :analytics_pw;
 CREATE ROLE report_user    LOGIN PASSWORD :report_pw;
 
+-- AWS RDS PostgreSQL 16+에서는 마스터(rds_superuser)가 새로 만든 Role을 소유자로
+-- 스키마를 생성(AUTHORIZATION)하려면 해당 Role의 멤버여야 한다.
+GRANT identity_user, routine_user, workout_user, analytics_user, report_user TO CURRENT_USER;
+
 CREATE SCHEMA identity  AUTHORIZATION identity_user;
 CREATE SCHEMA routine   AUTHORIZATION routine_user;
 CREATE SCHEMA workout   AUTHORIZATION workout_user;
