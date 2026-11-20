@@ -1,0 +1,6 @@
+# Local only: remote write receiver has no authentication. Keep Service ClusterIP.
+# Access exclusively through localhost port-forward; do not expose through ingress.
+kube-prometheus-stack:
+  prometheus:
+    prometheusSpec:
+      enableRemoteWriteReceiver: true

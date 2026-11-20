@@ -1,0 +1,73 @@
+# Apply after values.yaml to the barofit-prod cluster.
+loki:
+  singleBinary:
+    persistence:
+      storageClass: barofit-monitoring-gp3
+      size: 10Gi
+    resources:
+      limits:
+        cpu: 500m
+
+alloy:
+  rbac:
+    namespaces: [barofit, kube-system, monitoring]
+  alloy:
+    extraEnv:
+      - name: GOMAXPROCS
+        value: "1"
+      - name: CLUSTER_NAME
+        value: barofit-prod
+    resources:
+      limits:
+        cpu: 250m
+
+kube-prometheus-stack:
+  kubelet:
+    serviceMonitor:
+      cAdvisor: true
+  grafana:
+    grafana.ini:
+      server:
+        domain: grafana.barofit.cloud
+        root_url: https://grafana.barofit.cloud/
+      security:
+        cookie_secure: true
+        strict_transport_security: true
+      users:
+        allow_sign_up: false
+        allow_org_create: false
+      auth.anonymous:
+        enabled: false
+    ingress:
+      enabled: true
+      ingressClassName: alb
+      annotations:
+        alb.ingress.kubernetes.io/load-balancer-name: barofit-monitoring
+        alb.ingress.kubernetes.io/scheme: internet-facing
+        alb.ingress.kubernetes.io/target-type: ip
+        alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+        alb.ingress.kubernetes.io/ssl-redirect: "443"
+        alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:373514675861:certificate/4e341eeb-61cf-49b1-8440-e325fb692789
+        alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+        alb.ingress.kubernetes.io/healthcheck-path: /api/health
+        alb.ingress.kubernetes.io/success-codes: "200"
+      hosts:
+        - grafana.barofit.cloud
+      path: /
+      pathType: Prefix
+    persistence:
+      storageClassName: barofit-monitoring-gp3
+      size: 2Gi
+  prometheus:
+    prometheusSpec:
+      externalLabels:
+        cluster: barofit-prod
+      retention: 7d
+      retentionSize: 8GB
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: barofit-monitoring-gp3
+            resources:
+              requests:
+                storage: 10Gi

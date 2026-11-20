@@ -1,0 +1,14 @@
+clusterName: barofit-prod
+region: ap-northeast-2
+vpcId: vpc-0522ee5466e706717
+replicaCount: 2
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

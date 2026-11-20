@@ -1,0 +1,1232 @@
+{
+  "uid": "barofit-load-test",
+  "title": "바로핏 · 부하테스트",
+  "description": "동일 조건의 testid 실행을 분리해 처리량·오류·tail latency와 개선 전후 차이를 검증합니다.",
+  "tags": [
+    "barofit",
+    "portfolio",
+    "observability"
+  ],
+  "schemaVersion": 39,
+  "version": 2,
+  "editable": false,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "성능 결과의 재현성과 해석",
+      "type": "text",
+      "options": {
+        "mode": "markdown",
+        "content": "**먼저 실행 조건을 맞추고 개선 전·후를 비교하세요.**\n\n실행별 고유 `testid`, 같은 시나리오·VU·지속 시간·데이터 규모·배포 이미지로 측정합니다. p95/p99는 k6가 보낸 **series별 요약값**이며 평균하거나 합산하지 않습니다. 최악 p95는 선택한 series 중 가장 큰 값입니다. HTTP 실패율 패널은 status 0·4xx·5xx 기준이므로 사용자 정의 check 결과와 다를 수 있습니다.\n\n현재는 테스트 미실행 상태입니다. 샘플 결과를 넣지 않습니다. remote write 전송 시 `K6_PROMETHEUS_RW_TREND_STATS=avg,p(95),p(99)`와 `--tag testid=<실행ID>`를 사용하고, 선택 시간 범위에 두 실행이 모두 포함되도록 설정하세요. **테스트 종료 요약 JSON을 최종 수치의 근거로 함께 보관**하세요."
+      },
+      "id": 1,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 6
+      }
+    },
+    {
+      "title": "처리량",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(k6_http_reqs_total{testid=~\"$testid\",name=~\"$endpoint\"}[$__rate_interval]))",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 2,
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 4,
+        "h": 5
+      }
+    },
+    {
+      "title": "요청 수 · 선택 구간",
+      "type": "stat",
+      "description": "Prometheus 증가량은 scrape 경계에서 추정됩니다. 최종 총 요청 수는 k6 summary를 사용.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(k6_http_reqs_total{testid=~\"$testid\",name=~\"$endpoint\"}[$__range]))",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 3,
+      "gridPos": {
+        "x": 4,
+        "y": 6,
+        "w": 4,
+        "h": 5
+      }
+    },
+    {
+      "title": "HTTP 실패율",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(rate(k6_http_reqs_total{testid=~\"$testid\",name=~\"$endpoint\",status=~\"0|4..|5..\"}[$__rate_interval])) or (0 * sum(rate(k6_http_reqs_total{testid=~\"$testid\",name=~\"$endpoint\"}[$__rate_interval])))) / (sum(rate(k6_http_reqs_total{testid=~\"$testid\",name=~\"$endpoint\"}[$__rate_interval])) > 0)",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 4,
+      "gridPos": {
+        "x": 8,
+        "y": 6,
+        "w": 4,
+        "h": 5
+      }
+    },
+    {
+      "title": "최악 p95",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(k6_http_req_duration_p95{testid=~\"$testid\",name=~\"$endpoint\"})",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 5,
+      "gridPos": {
+        "x": 12,
+        "y": 6,
+        "w": 4,
+        "h": 5
+      }
+    },
+    {
+      "title": "최악 p99",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(k6_http_req_duration_p99{testid=~\"$testid\",name=~\"$endpoint\"})",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 6,
+      "gridPos": {
+        "x": 16,
+        "y": 6,
+        "w": 4,
+        "h": 5
+      }
+    },
+    {
+      "title": "최대 동시 VU",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(max_over_time(k6_vus{testid=~\"$testid\"}[$__range]))",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 7,
+      "gridPos": {
+        "x": 20,
+        "y": 6,
+        "w": 4,
+        "h": 5
+      }
+    },
+    {
+      "title": "01 · 부하 곡선 — 처리량이 늘 때 지연·실패가 어떻게 변하는가",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "id": 8,
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "title": "Endpoint별 처리량",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(testid,name)(rate(k6_http_reqs_total{testid=~\"$testid\",name=~\"$endpoint\"}[$__rate_interval]))",
+          "legendFormat": "{{testid}} / {{name}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 9,
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "title": "동시 사용자 변화",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(testid)(k6_vus{testid=~\"$testid\"})",
+          "legendFormat": "{{testid}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 10,
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "title": "Endpoint별 p95",
+      "type": "timeseries",
+      "description": "series별 k6 요약값. 같은 endpoint라도 status 등 label이 다르면 별도 선으로 표시.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "k6_http_req_duration_p95{testid=~\"$testid\",name=~\"$endpoint\"}",
+          "legendFormat": "{{testid}} / {{name}} / {{status}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 11,
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "title": "Endpoint별 p99",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "k6_http_req_duration_p99{testid=~\"$testid\",name=~\"$endpoint\"}",
+          "legendFormat": "{{testid}} / {{name}} / {{status}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 12,
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "title": "실패 상태 코드 요청률",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(testid,status)(rate(k6_http_reqs_total{testid=~\"$testid\",name=~\"$endpoint\",status=~\"0|4..|5..\"}[$__rate_interval]))",
+          "legendFormat": "{{testid}} / HTTP {{status}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 13,
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "title": "Dropped iterations",
+      "type": "timeseries",
+      "description": "부하 생성기가 목표 반복을 시작하지 못한 횟수. 처리량 개선과 혼동하지 않습니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(testid)(increase(k6_dropped_iterations_total{testid=~\"$testid\"}[$__range]))",
+          "legendFormat": "{{testid}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 14,
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "title": "02 · 지연 분해 — 연결 지연인가 서버 대기인가",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "id": 15,
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "title": "TCP 연결 p95",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "k6_http_req_connecting_p95{testid=~\"$testid\",name=~\"$endpoint\"}",
+          "legendFormat": "{{testid}} / {{name}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 16,
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 12,
+        "h": 7
+      }
+    },
+    {
+      "title": "TTFB p95",
+      "type": "timeseries",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "k6_http_req_waiting_p95{testid=~\"$testid\",name=~\"$endpoint\"}",
+          "legendFormat": "{{testid}} / {{name}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 17,
+      "gridPos": {
+        "x": 12,
+        "y": 37,
+        "w": 12,
+        "h": 7
+      }
+    },
+    {
+      "title": "03 · 개선 전·후 — 두 실행과 동일 시간 범위를 선택",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "id": 18,
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "title": "비교 전 · 최악 p95",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(max_over_time(k6_http_req_duration_p95{testid=\"$baseline\",name=~\"$endpoint\"}[$__range]))",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 19,
+      "gridPos": {
+        "x": 0,
+        "y": 45,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "title": "비교 후 · 최악 p95",
+      "type": "stat",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(max_over_time(k6_http_req_duration_p95{testid=\"$candidate\",name=~\"$endpoint\"}[$__range]))",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 20,
+      "gridPos": {
+        "x": 8,
+        "y": 45,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "title": "최악 p95 감소율",
+      "type": "stat",
+      "description": "양수=감소, 음수=악화. 두 실행의 endpoint별 누적 p95 요약 중 최댓값 비교이며 전체 요청의 pooled p95가 아닙니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "1 - (max(max_over_time(k6_http_req_duration_p95{testid=\"$candidate\",name=~\"$endpoint\"}[$__range]))) / ((max(max_over_time(k6_http_req_duration_p95{testid=\"$baseline\",name=~\"$endpoint\"}[$__range]))) > 0)",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 21,
+      "gridPos": {
+        "x": 16,
+        "y": 45,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "title": "비교 전 · Endpoint p95",
+      "type": "table",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(name)(max_over_time(k6_http_req_duration_p95{testid=\"$baseline\",name=~\"$endpoint\"}[$__range]))",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "비교 전 · Endpoint p95"
+            }
+          }
+        }
+      ],
+      "id": 22,
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "title": "비교 후 · Endpoint p95",
+      "type": "table",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(name)(max_over_time(k6_http_req_duration_p95{testid=\"$candidate\",name=~\"$endpoint\"}[$__range]))",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "수집 대기",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "비교 후 · Endpoint p95"
+            }
+          }
+        }
+      ],
+      "id": 23,
+      "gridPos": {
+        "x": 12,
+        "y": 50,
+        "w": 12,
+        "h": 8
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "testid",
+        "label": "testid",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(k6_http_reqs_total, testid)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "endpoint",
+        "label": "endpoint",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(k6_http_reqs_total{testid=~\"$testid\"}, name)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "baseline",
+        "label": "비교 전 실행",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(k6_http_reqs_total, testid)",
+        "refresh": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "선택 필요",
+          "value": "__select_run__"
+        }
+      },
+      {
+        "name": "candidate",
+        "label": "비교 후 실행",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(k6_http_reqs_total, testid)",
+        "refresh": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "선택 필요",
+          "value": "__select_run__"
+        }
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "부하테스트 · 성능 비교",
+      "type": "link",
+      "url": "/d/barofit-load-test",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "CPU·메모리·DB · 병목 분석",
+      "type": "link",
+      "url": "/d/barofit-resources",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "EKS 서비스 · 품질과 장애",
+      "type": "link",
+      "url": "/d/barofit-services",
+      "keepTime": true,
+      "includeVars": true
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(255, 163, 72, 1)",
+        "name": "배포·장애 기록",
+        "type": "dashboard"
+      }
+    ]
+  }
+}

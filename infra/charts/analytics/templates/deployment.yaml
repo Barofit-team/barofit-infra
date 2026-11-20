@@ -23,6 +23,10 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
+            {{- if .Values.monitoring.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "analytics.name" . }}-config
@@ -35,6 +39,20 @@ spec:
                 name: {{ . }}
             {{- end }}
           env:
+            {{- if .Values.monitoring.enabled }}
+            - name: MANAGEMENT_SERVER_PORT
+              value: {{ .Values.monitoring.port | quote }}
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "health,prometheus"
+            - name: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED
+              value: "true"
+            - name: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ADDADDITIONALPATHS
+              value: "true"
+            - name: MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILESHISTOGRAM_HTTP_SERVER_REQUESTS
+              value: "true"
+            - name: MANAGEMENT_METRICS_TAGS_APPLICATION
+              value: {{ include "analytics.name" . | quote }}
+            {{- end }}
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -50,20 +68,23 @@ spec:
               mountPath: /run/secrets/jwt
               readOnly: true
           startupProbe:
+            timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
             httpGet:
               path: {{ .Values.probe.path }}
-              port: {{ .Values.probe.port }}
+              port: {{ if .Values.monitoring.enabled }}metrics{{ else }}{{ .Values.probe.port }}{{ end }}
             periodSeconds: 5
-            failureThreshold: 30
+            failureThreshold: {{ .Values.probe.startupFailureThreshold }}
           readinessProbe:
+            timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
             httpGet:
-              path: {{ .Values.probe.path }}
+              path: {{ if .Values.monitoring.enabled }}/readyz{{ else }}{{ .Values.probe.path }}{{ end }}
               port: {{ .Values.probe.port }}
             periodSeconds: 10
             failureThreshold: 3
           livenessProbe:
+            timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
             httpGet:
-              path: {{ .Values.probe.path }}
+              path: {{ if .Values.monitoring.enabled }}/livez{{ else }}{{ .Values.probe.path }}{{ end }}
               port: {{ .Values.probe.port }}
             periodSeconds: 15
             failureThreshold: 3

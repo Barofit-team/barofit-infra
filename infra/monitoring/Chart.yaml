@@ -1,0 +1,15 @@
+apiVersion: v2
+name: barofit-monitoring
+description: Local minikube logs and Kubernetes metrics
+type: application
+version: 0.1.0
+dependencies:
+  - name: loki
+    version: "21.2.1"
+    repository: https://grafana-community.github.io/helm-charts
+  - name: alloy
+    version: "1.15.0"
+    repository: https://grafana.github.io/helm-charts
+  - name: kube-prometheus-stack
+    version: "93.2.2"
+    repository: https://prometheus-community.github.io/helm-charts

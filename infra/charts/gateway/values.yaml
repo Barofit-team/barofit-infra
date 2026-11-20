@@ -22,3 +22,6 @@ resources:
   limits:
     cpu: 250m
     memory: 32Mi
+
+# Spring health probe alias remains on application port with separate management listener.
+upstreamHealthPath: /readyz

@@ -1,0 +1,17 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "analytics.name" . }}-metrics
+  labels:
+    barofit.io/metrics: application
+    {{- include "analytics.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "analytics.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: {{ .Values.monitoring.port }}
+      targetPort: metrics
+{{- end }}

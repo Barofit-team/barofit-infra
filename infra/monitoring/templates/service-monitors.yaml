@@ -1,0 +1,23 @@
+{{- range $kind := list "application" "postgres" }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: barofit-{{ $kind }}
+  labels:
+    release: {{ $.Release.Name }}
+spec:
+  namespaceSelector:
+    matchNames: [{{ $.Values.barofit.namespace | quote }}]
+  selector:
+    matchLabels:
+      barofit.io/metrics: {{ $kind }}
+  endpoints:
+    - port: metrics
+      path: {{ if eq $kind "application" }}/actuator/prometheus{{ else }}/metrics{{ end }}
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_service_label_app_kubernetes_io_name]
+          targetLabel: application
+{{- end }}
