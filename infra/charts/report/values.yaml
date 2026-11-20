@@ -22,6 +22,8 @@ resources:
     memory: 256Mi
 
 probe:
+  timeoutSeconds: 5
+  startupFailureThreshold: 120
   path: /actuator/health
   port: 8080
 
@@ -35,7 +37,7 @@ secrets:
 config:
   CORS_ALLOWED_ORIGINS: "http://localhost:8081"
   DB_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
-  JWT_PUBLIC_JWKS_PATH: /app/secrets/jwt-jwks.json
+  JWT_PUBLIC_JWKS_PATH: /run/secrets/jwt/jwt-jwks.json
   WORKOUT_BASE_URL: "http://workout-service:8080"
   ROUTINE_BASE_URL: "http://routine-service:8080"
   # application.yaml 기본값(3008)이 아니라 컨테이너 내부 포트 8080으로 강제 (compose.yaml과 동일)
@@ -50,7 +52,12 @@ config:
     -Xss512k
     -XX:+ExitOnOutOfMemoryError
   MALLOC_ARENA_MAX: "2"
-  SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "4"
-  SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "1"
+  SPRING_DATASOURCE_HIKARI_MAXIMUMPOOLSIZE: "4"
+  SPRING_DATASOURCE_HIKARI_MINIMUMIDLE: "1"
   SERVER_TOMCAT_THREADS_MAX: "32"
   SERVER_TOMCAT_THREADS_MIN_SPARE: "2"
+
+# Separate internal actuator listener; gateway forwards only the application port.
+monitoring:
+  enabled: true
+  port: 9091
