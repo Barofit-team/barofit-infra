@@ -35,3 +35,11 @@ report:
 # Do not deploy the in-cluster PostgreSQL chart.
 postgres:
   enabled: false
+
+# Match the verified live gateway configuration.
+gateway:
+  resources:
+    requests:
+      cpu: 10m
+  nginx:
+    resolverIp: "172.20.0.10"
