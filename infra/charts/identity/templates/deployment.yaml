@@ -86,14 +86,14 @@ spec:
             timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
             httpGet:
               path: {{ if .Values.monitoring.enabled }}/readyz{{ else }}{{ .Values.probe.path }}{{ end }}
-              port: {{ .Values.probe.port }}
+              port: {{ if .Values.monitoring.enabled }}metrics{{ else }}{{ .Values.probe.port }}{{ end }}
             periodSeconds: 10
             failureThreshold: 3
           livenessProbe:
             timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
             httpGet:
               path: {{ if .Values.monitoring.enabled }}/livez{{ else }}{{ .Values.probe.path }}{{ end }}
-              port: {{ .Values.probe.port }}
+              port: {{ if .Values.monitoring.enabled }}metrics{{ else }}{{ .Values.probe.port }}{{ end }}
             periodSeconds: 15
             failureThreshold: 3
           resources:
