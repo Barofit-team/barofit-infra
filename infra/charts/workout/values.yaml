@@ -1,6 +1,6 @@
 nameOverride: workout-service
 
-replicaCount: 1
+replicaCount: 2
 
 global:
   imageTag: ""
@@ -19,7 +19,7 @@ resources:
     memory: 229Mi
   limits:
     cpu: "1"
-    memory: 256Mi
+    memory: 288Mi
 
 probe:
   timeoutSeconds: 5

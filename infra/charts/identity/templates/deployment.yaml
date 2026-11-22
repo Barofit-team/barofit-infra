@@ -16,6 +16,13 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              {{- include "identity.selectorLabels" . | nindent 14 }}
       serviceAccountName: {{ include "identity.name" . }}
       containers:
         - name: identity
@@ -78,15 +85,15 @@ spec:
           readinessProbe:
             timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
             httpGet:
-              path: {{ if .Values.monitoring.enabled }}/readyz{{ else }}{{ .Values.probe.path }}{{ end }}
-              port: {{ .Values.probe.port }}
+              path: {{ .Values.probe.path }}
+              port: {{ if .Values.monitoring.enabled }}metrics{{ else }}{{ .Values.probe.port }}{{ end }}
             periodSeconds: 10
             failureThreshold: 3
           livenessProbe:
             timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
             httpGet:
-              path: {{ if .Values.monitoring.enabled }}/livez{{ else }}{{ .Values.probe.path }}{{ end }}
-              port: {{ .Values.probe.port }}
+              path: {{ .Values.probe.path }}
+              port: {{ if .Values.monitoring.enabled }}metrics{{ else }}{{ .Values.probe.port }}{{ end }}
             periodSeconds: 15
             failureThreshold: 3
           resources:
