@@ -16,6 +16,13 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              {{- include "workout.selectorLabels" . | nindent 14 }}
       containers:
         - name: workout
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Values.global.imageTag | default "latest" }}"

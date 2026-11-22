@@ -16,6 +16,13 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              {{- include "identity.selectorLabels" . | nindent 14 }}
       serviceAccountName: {{ include "identity.name" . }}
       containers:
         - name: identity

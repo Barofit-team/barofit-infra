@@ -1,6 +1,6 @@
 nameOverride: report-service
 
-replicaCount: 1
+replicaCount: 2
 
 global:
   imageTag: ""
