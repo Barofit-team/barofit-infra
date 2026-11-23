@@ -11,7 +11,7 @@ identity:
 routine:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-routine"
-    tag: "80c8f67"
+    tag: "d41a104"
 workout:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-workout"
