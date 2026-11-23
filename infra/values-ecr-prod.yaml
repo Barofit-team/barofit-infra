@@ -7,25 +7,21 @@
 identity:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-identity"
-    tag: "80c8f67"
-
+    tag: "cbb3df4"
 routine:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-routine"
     tag: "80c8f67"
-
 workout:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-workout"
     tag: "80c8f67"
-
 analytics:
   config:
     SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-analytics"
     tag: "80c8f67"
-
 report:
   config:
     SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
@@ -36,7 +32,6 @@ report:
 # Do not deploy the in-cluster PostgreSQL chart.
 postgres:
   enabled: false
-
 # Match the verified live gateway configuration.
 gateway:
   resources:
