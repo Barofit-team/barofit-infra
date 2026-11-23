@@ -43,7 +43,7 @@ jobs:
           echo "Checking production deployment prerequisites"
 
           for SERVICE in identity routine workout analytics report; do
-            TAG=$(grep -A2 "^${SERVICE}:" infra/values-ecr-prod.yaml | grep "tag:" | head -1 || true)
+            TAG=$(yq eval ".${SERVICE}.image.tag // \"\"" infra/values-ecr-prod.yaml)
             if [ -z "${TAG}" ]; then
               echo "FAIL: ${SERVICE}.image.tag is not set in values-ecr-prod.yaml"
               exit 1
@@ -51,7 +51,8 @@ jobs:
           done
           echo "PASS: every service has an image.tag set"
 
-          if ! grep -q "enabled: false" <<< "$(awk '/^postgres:/,0' infra/values-ecr-prod.yaml)"; then
+          POSTGRES_ENABLED=$(yq eval '.postgres.enabled // false' infra/values-ecr-prod.yaml)
+          if [ "${POSTGRES_ENABLED}" != "false" ]; then
             echo "FAIL: postgres.enabled must stay false in production (external RDS is used)"
             exit 1
           fi
