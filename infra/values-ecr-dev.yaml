@@ -1,26 +1,27 @@
-# BaroFit ECR image configuration
-# Initial image tag verified from team ECR handoff
-# Not a production-ready deployment configuration
-
-global:
-  imageTag: "80c8f67"
+# BaroFit ECR image configuration — Helm 렌더링 검증(helm-validate.yml)용.
+# 실제로 배포되는 환경은 없다(barofit-dev Application은 git에만 있고 클러스터엔 적용된 적 없음).
 
 identity:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-identity"
+    tag: "80c8f67"
 
 routine:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-routine"
+    tag: "80c8f67"
 
 workout:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-workout"
+    tag: "80c8f67"
 
 analytics:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-analytics"
+    tag: "80c8f67"
 
 report:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-report"
+    tag: "80c8f67"

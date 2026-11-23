@@ -2,8 +2,7 @@ name: BaroFit OIDC Terraform Validation
 
 on:
   push:
-    branches:
-      - feat/cd-ecr-helm-gitops
+    branches: [dev, main]
     paths:
       - "terraform/github-oidc/**"
       - ".github/workflows/terraform-oidc-validate.yml"

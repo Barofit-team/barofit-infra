@@ -1,5 +1,8 @@
 name: BaroFit Production Readiness
 
+# 프로덕션 자동 배포는 2026-11-23에 팀 승인됨(barofit-infra#33). 이 워크플로우는 더 이상
+# "아직 승인 안 됐다"를 강제하지 않고, 실제로 운영 배포에 필요한 값들이 갖춰졌는지를 검증한다.
+
 on:
   pull_request:
     paths:
@@ -17,6 +20,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Helm
+        uses: azure/setup-helm@v4.3.1
+        with:
+          version: v3.17.3
+
+      - name: Build Helm dependencies
+        run: helm dependency update infra/umbrella
+
+      - name: Render production manifests
+        run: |
+          helm template barofit infra/umbrella \
+            --namespace barofit \
+            -f infra/values-ecr-prod.yaml \
+            > /tmp/barofit-prod-rendered.yaml
+
       - name: Validate production configuration
         shell: bash
         run: |
@@ -24,19 +42,23 @@ jobs:
 
           echo "Checking production deployment prerequisites"
 
-          if ! grep -q "PRODUCTION DRAFT" infra/values-ecr-prod.yaml; then
-            echo "Production values draft marker missing"
+          for SERVICE in identity routine workout analytics report; do
+            TAG=$(grep -A2 "^${SERVICE}:" infra/values-ecr-prod.yaml | grep "tag:" | head -1 || true)
+            if [ -z "${TAG}" ]; then
+              echo "FAIL: ${SERVICE}.image.tag is not set in values-ecr-prod.yaml"
+              exit 1
+            fi
+          done
+          echo "PASS: every service has an image.tag set"
+
+          if ! grep -q "enabled: false" <<< "$(awk '/^postgres:/,0' infra/values-ecr-prod.yaml)"; then
+            echo "FAIL: postgres.enabled must stay false in production (external RDS is used)"
             exit 1
           fi
+          echo "PASS: in-cluster postgres stays disabled"
 
-          if ! grep -q "DO NOT SYNC BEFORE TEAM APPROVAL" infra/argocd/applications/barofit-prod.yaml; then
-            echo "Argo CD safety marker missing"
+          if ! grep -Eq "automated:" infra/argocd/applications/barofit-prod.yaml; then
+            echo "FAIL: barofit-prod Application is missing syncPolicy.automated"
             exit 1
           fi
-
-          if grep -Eq "automated:" infra/argocd/applications/barofit-prod.yaml; then
-            echo "Production auto-sync must remain disabled"
-            exit 1
-          fi
-
-          echo "PASS: Unapproved production auto-sync is disabled"
+          echo "PASS: production auto-sync is configured"

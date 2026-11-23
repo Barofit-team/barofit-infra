@@ -1,36 +1,37 @@
-# PRODUCTION DRAFT - NOT APPROVED FOR DEPLOYMENT
-# Image tag 80c8f67 is an existing handoff tag, not a verified production release.
-# Confirm database, secrets, ingress, resources and image tags before deployment.
-# BaroFit ECR image configuration
-# Initial image tag verified from team ECR handoff
-# Not a production-ready deployment configuration
-
-global:
-  imageTag: "80c8f67"
+# BaroFit ECR image configuration — production (barofit-prod ArgoCD Application, targetRevision: main)
+#
+# 서비스별 image.tag는 각 서비스 레포의 ecr-publish.yml이 main에 push될 때마다 자동으로
+# 이 파일에 커밋해서 갱신한다(커밋 SHA 7자리). 수동으로 건드리지 않는다 — 다음 자동 커밋에서
+# 덮어써진다. 최초값은 기존에 수동으로 올려둔 handoff 이미지 태그를 그대로 둔다.
 
 identity:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-identity"
+    tag: "80c8f67"
 
 routine:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-routine"
+    tag: "80c8f67"
 
 workout:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-workout"
+    tag: "80c8f67"
 
 analytics:
   config:
     SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-analytics"
+    tag: "80c8f67"
 
 report:
   config:
     SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-report"
+    tag: "80c8f67"
 # Production uses an external database.
 # Do not deploy the in-cluster PostgreSQL chart.
 postgres:
