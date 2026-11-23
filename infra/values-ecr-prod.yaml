@@ -15,7 +15,7 @@ routine:
 workout:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-workout"
-    tag: "80c8f67"
+    tag: "6303da2"
 analytics:
   config:
     SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
