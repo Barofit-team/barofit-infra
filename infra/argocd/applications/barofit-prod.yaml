@@ -1,4 +1,4 @@
-# PRODUCTION DRAFT - DO NOT SYNC BEFORE TEAM APPROVAL
+# Production Application — approved for automated deployment from main (2026-11-23).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -20,5 +20,8 @@ spec:
     namespace: barofit
 
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true

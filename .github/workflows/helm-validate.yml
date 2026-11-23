@@ -2,8 +2,10 @@ name: BaroFit Helm CD Validation
 
 on:
   push:
-    branches:
-      - feat/cd-ecr-helm-gitops
+    branches: [dev, main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/helm-validate.yml"
   pull_request:
     paths:
       - "infra/**"
@@ -41,23 +43,31 @@ jobs:
             -f infra/values-ecr-dev.yaml \
             > /tmp/barofit-rendered.yaml
 
-      - name: Verify five ECR images
+      - name: Verify five ECR images render with a real tag
         shell: bash
         run: |
           set -euo pipefail
 
           REGISTRY="373514675861.dkr.ecr.ap-northeast-2.amazonaws.com"
-          TAG="80c8f67"
 
+          # 태그는 ecr-publish.yml이 main에 push될 때마다 커밋 SHA로 갱신하므로 고정값을
+          # 검증하지 않는다 — 레포지토리당 "뭔가 비어있지 않은 태그"가 붙어 있는지만 확인한다.
           for SERVICE in identity routine workout analytics report; do
-            IMAGE="${REGISTRY}/barofit-${SERVICE}:${TAG}"
+            IMAGE="${REGISTRY}/barofit-${SERVICE}"
 
-            if ! grep -Fq "${IMAGE}" /tmp/barofit-rendered.yaml; then
-              echo "FAIL: ${IMAGE}"
+            MATCH=$(grep -F "${IMAGE}:" /tmp/barofit-rendered.yaml | head -1 || true)
+
+            if [ -z "${MATCH}" ]; then
+              echo "FAIL: no image reference for ${IMAGE}"
               exit 1
             fi
 
-            echo "PASS: ${IMAGE}"
+            if echo "${MATCH}" | grep -Eq ":\s*\"?latest\"?\s*$"; then
+              echo "FAIL: ${IMAGE} resolved to 'latest' (image.tag not set)"
+              exit 1
+            fi
+
+            echo "PASS: ${MATCH}"
           done
 
       - name: Validation completed
