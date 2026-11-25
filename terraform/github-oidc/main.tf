@@ -4,8 +4,8 @@ locals {
   oidc_host = "token.actions.githubusercontent.com"
 
   github_subjects = [
-    for service in var.services :
-    "repo:${var.github_organization}/barofit-${service}:ref:refs/heads/main"
+    for service, repo_id in var.service_repo_ids :
+    "repo:${var.github_organization}@${var.github_organization_id}/barofit-${service}@${repo_id}:ref:refs/heads/main"
   ]
 
   ecr_repository_arns = [
