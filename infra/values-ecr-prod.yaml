@@ -7,7 +7,7 @@
 identity:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-identity"
-    tag: "ae199e3"
+    tag: "cf31351"
 routine:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-routine"
