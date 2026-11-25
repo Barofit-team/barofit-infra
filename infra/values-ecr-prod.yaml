@@ -7,27 +7,27 @@
 identity:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-identity"
-    tag: "ae199e3"
+    tag: "cf31351"
 routine:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-routine"
-    tag: "8ebc497"
+    tag: "0fc635c"
 workout:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-workout"
-    tag: "6303da2"
+    tag: "b6879fc"
 analytics:
   config:
     SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-analytics"
-    tag: "6497e5f"
+    tag: "b00a233"
 report:
   config:
     SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-report"
-    tag: "f0e8488"
+    tag: "c82292c"
 # Production uses an external database.
 # Do not deploy the in-cluster PostgreSQL chart.
 postgres:
