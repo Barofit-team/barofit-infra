@@ -2,6 +2,12 @@ nameOverride: identity-service
 
 replicaCount: 2
 
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 65
+
 global:
   imageTag: ""
 
