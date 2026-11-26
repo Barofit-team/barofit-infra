@@ -11,11 +11,11 @@ identity:
 routine:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-routine"
-    tag: "0fc635c"
+    tag: "38b932a"
 workout:
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-workout"
-    tag: "b6879fc"
+    tag: "af65899"
 analytics:
   config:
     SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
