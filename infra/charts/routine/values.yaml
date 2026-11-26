@@ -5,8 +5,11 @@ replicaCount: 2
 autoscaling:
   enabled: true
   minReplicas: 2
-  maxReplicas: 5
+  maxReplicas: 3
   targetCPUUtilizationPercentage: 60
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
 
 global:
   imageTag: ""

@@ -7,6 +7,9 @@ autoscaling:
   minReplicas: 1
   maxReplicas: 2
   targetCPUUtilizationPercentage: 55
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
 
 image:
   repository: nginx
