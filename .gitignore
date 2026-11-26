@@ -106,6 +106,8 @@ terraform.rc
 # Performance test artifacts
 /performance-tests/.artifacts/
 /performance-tests/results/*.json
+/performance-tests/results/*.csv
+/performance-tests/results/*.log
 !/performance-tests/results/.gitkeep
 # Python verification helpers
 __pycache__/

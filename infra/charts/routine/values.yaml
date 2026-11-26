@@ -2,6 +2,15 @@ nameOverride: routine-service
 
 replicaCount: 2
 
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 60
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+
 global:
   imageTag: ""
 

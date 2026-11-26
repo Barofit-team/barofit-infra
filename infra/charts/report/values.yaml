@@ -2,6 +2,15 @@ nameOverride: report-service
 
 replicaCount: 2
 
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+
 global:
   imageTag: ""
 
