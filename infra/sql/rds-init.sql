@@ -27,6 +27,9 @@ REVOKE ALL ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON DATABASE barofit FROM PUBLIC;
 GRANT CONNECT ON DATABASE barofit TO identity_user, routine_user, workout_user, analytics_user, report_user;
 
+-- routine 마이그레이션(V13)이 데이터 백필용 임시 테이블을 사용하므로 TEMP 권한을 별도로 부여한다.
+GRANT TEMP ON DATABASE barofit TO routine_user;
+
 -- search_path를 자기 스키마로 고정
 ALTER ROLE identity_user  SET search_path TO identity;
 ALTER ROLE routine_user   SET search_path TO routine;
