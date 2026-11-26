@@ -41,6 +41,9 @@ performance-tests/
   scripts/
     seed-baseline-data.mjs   고정 시드 SQL + refresh token 풀 생성
     mint-access-token.mjs    RS256 테스트 액세스 토큰 직접 발급(소셜 로그인 우회)
+    watch-hpa.sh             HPA 적용 전/후 비교용 — 레플리카 수·HPA 상태·FailedScheduling
+                             이벤트를 주기적으로 폴링해 CSV/로그로 남긴다(run-all.sh와 별도
+                             터미널에서 병행 실행). 사용법은 스크립트 상단 주석 참고.
   run-all.sh    시나리오를 순서대로 실행하고 raw summary를 results/에 저장
   results/      raw k6 summary(.json). git에는 올리지 않는다
   .artifacts/   시드 SQL, 토큰 — 자격증명과 동급이라 git에 올리지 않는다
