@@ -27,7 +27,7 @@ report:
     SPRING_DATASOURCE_URL: "jdbc:postgresql://barofit-prod-postgres.czaikwsmwix7.ap-northeast-2.rds.amazonaws.com:5432/barofit"
   image:
     repository: "373514675861.dkr.ecr.ap-northeast-2.amazonaws.com/barofit-report"
-    tag: "2158396"
+    tag: "d44ba85"
 # Production uses an external database.
 # Do not deploy the in-cluster PostgreSQL chart.
 postgres:
